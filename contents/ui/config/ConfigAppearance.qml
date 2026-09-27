@@ -10,7 +10,6 @@ KCM.SimpleKCM {
     id: configAppearance
 
     property string cfg_desktopMode
-    property bool cfg_groupsCollapsedByDefault
     property string cfg_selectedGroup
     property string cfg_availableGroups
     property string cfg_compactDisplayMode
@@ -21,7 +20,6 @@ KCM.SimpleKCM {
     property bool cfg_showHeartbeats
 
     property string cfg_desktopModeDefault: "full"
-    property bool cfg_groupsCollapsedByDefaultDefault: false
     property string cfg_selectedGroupDefault: ""
     property string cfg_availableGroupsDefault: ""
     property string cfg_compactDisplayModeDefault: "textAndBadge"
@@ -220,13 +218,6 @@ KCM.SimpleKCM {
                 checked: configAppearance.cfg_desktopMode === "compact"
                 onToggled: if (checked) configAppearance.cfg_desktopMode = "compact"
             }
-        }
-
-        QQC2.CheckBox {
-            Kirigami.FormData.label: "Grouped dashboard:"
-            text: "Collapse groups by default"
-            checked: configAppearance.cfg_groupsCollapsedByDefault
-            onCheckedChanged: configAppearance.cfg_groupsCollapsedByDefault = checked
         }
 
         ColumnLayout {

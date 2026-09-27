@@ -24,10 +24,7 @@ PlasmaExtras.Representation {
     property var collapsedGroups: ({})
 
     function isGroupCollapsed(groupName) {
-        if (Object.prototype.hasOwnProperty.call(collapsedGroups, groupName)) {
-            return collapsedGroups[groupName];
-        }
-        return Plasmoid.configuration.groupsCollapsedByDefault;
+        return !!collapsedGroups[groupName];
     }
 
     function toggleGroupCollapsed(groupName) {

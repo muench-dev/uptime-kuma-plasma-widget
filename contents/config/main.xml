@@ -28,9 +28,6 @@
         <entry name="desktopMode" type="String">
             <default>full</default>
         </entry>
-        <entry name="groupsCollapsedByDefault" type="Bool">
-            <default>false</default>
-        </entry>
         <entry name="selectedGroup" type="String">
             <default></default>
         </entry>
