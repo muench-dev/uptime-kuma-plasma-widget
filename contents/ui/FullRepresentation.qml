@@ -366,11 +366,29 @@ PlasmaExtras.Representation {
             }
         }
 
-        // 4. Populated Dashboard View
+        // 4. Header-only desktop view
         ColumnLayout {
             anchors.fill: parent
             anchors.margins: Kirigami.Units.smallSpacing
-            visible: statusData !== null
+            visible: statusData !== null && fullRep.isHeaderOnlyMode
+
+            StatusHeader {
+                Layout.fillWidth: true
+                stats: fullRep.stats
+                statusTitle: statusData ? statusData.title : ""
+                lastUpdated: root.lastUpdated
+            }
+
+            Item {
+                Layout.fillHeight: true
+            }
+        }
+
+        // 5. Populated Dashboard View
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: Kirigami.Units.smallSpacing
+            visible: statusData !== null && !fullRep.isHeaderOnlyMode
             spacing: Kirigami.Units.smallSpacing
 
             StatusHeader {
@@ -382,13 +400,11 @@ PlasmaExtras.Representation {
 
             IncidentBanner {
                 Layout.fillWidth: true
-                visible: !fullRep.isHeaderOnlyMode
                 incident: (statusData && statusData.incidents && statusData.incidents.length > 0) ? statusData.incidents[0] : null
             }
 
             RowLayout {
                 Layout.fillWidth: true
-                visible: !fullRep.isHeaderOnlyMode
                 spacing: 6
 
                 PlasmaComponents.Button {
@@ -426,7 +442,7 @@ PlasmaExtras.Representation {
             // Flat monitor list (visible in full mode)
             ListView {
                 id: monitorList
-                visible: !fullRep.isGroupedMode && !fullRep.isHeaderOnlyMode
+                visible: !fullRep.isGroupedMode
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true
@@ -462,7 +478,7 @@ PlasmaExtras.Representation {
             // Grouped section cards list (visible in grouped mode)
             ListView {
                 id: groupSectionList
-                visible: fullRep.isGroupedMode && !fullRep.isHeaderOnlyMode
+                visible: fullRep.isGroupedMode
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true
