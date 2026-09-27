@@ -20,6 +20,7 @@ PlasmaExtras.Representation {
     property string searchQuery: ""
     property string activeFilter: "all"
     readonly property bool isGroupedMode: Plasmoid.configuration.desktopMode === "grouped"
+    readonly property bool isHeaderOnlyMode: Plasmoid.configuration.desktopMode === "headerOnly"
 
     property var collapsedGroups: ({})
 
@@ -119,6 +120,7 @@ PlasmaExtras.Representation {
     }
 
     header: PlasmaExtras.PlasmoidHeading {
+        visible: !fullRep.isHeaderOnlyMode
         contentHeight: headerRow.implicitHeight
         position: PlasmaComponents.ToolBar.Header
 
@@ -380,11 +382,13 @@ PlasmaExtras.Representation {
 
             IncidentBanner {
                 Layout.fillWidth: true
+                visible: !fullRep.isHeaderOnlyMode
                 incident: (statusData && statusData.incidents && statusData.incidents.length > 0) ? statusData.incidents[0] : null
             }
 
             RowLayout {
                 Layout.fillWidth: true
+                visible: !fullRep.isHeaderOnlyMode
                 spacing: 6
 
                 PlasmaComponents.Button {
@@ -422,7 +426,7 @@ PlasmaExtras.Representation {
             // Flat monitor list (visible in full mode)
             ListView {
                 id: monitorList
-                visible: !fullRep.isGroupedMode
+                visible: !fullRep.isGroupedMode && !fullRep.isHeaderOnlyMode
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true
@@ -458,7 +462,7 @@ PlasmaExtras.Representation {
             // Grouped section cards list (visible in grouped mode)
             ListView {
                 id: groupSectionList
-                visible: fullRep.isGroupedMode
+                visible: fullRep.isGroupedMode && !fullRep.isHeaderOnlyMode
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true

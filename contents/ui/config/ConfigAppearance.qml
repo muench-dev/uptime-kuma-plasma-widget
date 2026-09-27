@@ -204,6 +204,14 @@ KCM.SimpleKCM {
             }
 
             QQC2.RadioButton {
+                id: modeDesktopHeaderOnly
+                QQC2.ButtonGroup.group: desktopModeGroup
+                text: "Status Header Only (summary without monitor lists)"
+                checked: configAppearance.cfg_desktopMode === "headerOnly"
+                onToggled: if (checked) configAppearance.cfg_desktopMode = "headerOnly"
+            }
+
+            QQC2.RadioButton {
                 id: modeDesktopGrouped
                 QQC2.ButtonGroup.group: desktopModeGroup
                 text: "Grouped by Category (group cards with health badges and collapsible monitors)"
