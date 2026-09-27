@@ -17,6 +17,7 @@ KCM.SimpleKCM {
     property bool cfg_showLatency
     property bool cfg_showUptimePercent
     property bool cfg_showTags
+    property bool cfg_showHeartbeats
 
     property string cfg_desktopModeDefault: "full"
     property string cfg_selectedGroupDefault: ""
@@ -26,6 +27,7 @@ KCM.SimpleKCM {
     property bool cfg_showLatencyDefault: true
     property bool cfg_showUptimePercentDefault: true
     property bool cfg_showTagsDefault: true
+    property bool cfg_showHeartbeatsDefault: true
 
     property bool isFetchingGroups: false
     property string groupFetchStatus: ""
@@ -37,6 +39,7 @@ KCM.SimpleKCM {
 
     onCfg_selectedGroupChanged: {
         Plasmoid.configuration.selectedGroup = cfg_selectedGroup || "";
+        updateGroupList();
     }
 
     Timer {
@@ -96,6 +99,7 @@ KCM.SimpleKCM {
         var newVal = list.join("|");
         configAppearance.cfg_selectedGroup = newVal;
         Plasmoid.configuration.selectedGroup = newVal;
+        updateGroupList();
     }
 
     function selectAllGroups() {
@@ -103,11 +107,13 @@ KCM.SimpleKCM {
         var newVal = all.join("|");
         configAppearance.cfg_selectedGroup = newVal;
         Plasmoid.configuration.selectedGroup = newVal;
+        updateGroupList();
     }
 
     function clearGroupSelection() {
         configAppearance.cfg_selectedGroup = "";
         Plasmoid.configuration.selectedGroup = "";
+        updateGroupList();
     }
 
     function updateGroupList() {
@@ -219,7 +225,8 @@ KCM.SimpleKCM {
 
                 QQC2.Label {
                     text: {
-                        var list = configAppearance.getSelectedGroupList();
+                        var raw = configAppearance.cfg_selectedGroup || "";
+                        var list = raw ? raw.split("|").map(function(s) { return s.trim(); }).filter(function(s) { return s.length > 0; }) : [];
                         if (list.length === 0) return "Showing all groups";
                         return "Selected (" + list.length + "): " + list.join(", ");
                     }
@@ -236,7 +243,10 @@ KCM.SimpleKCM {
 
                 QQC2.Button {
                     text: "Clear"
-                    visible: configAppearance.getSelectedGroupList().length > 0
+                    visible: {
+                        var raw = configAppearance.cfg_selectedGroup || "";
+                        return raw.trim().length > 0 && raw !== "all";
+                    }
                     QQC2.ToolTip.text: "Clear filter (show all groups)"
                     QQC2.ToolTip.visible: hovered
                     onClicked: configAppearance.clearGroupSelection()
@@ -285,7 +295,7 @@ KCM.SimpleKCM {
                                 required property string modelData
                                 Layout.fillWidth: true
                                 text: modelData
-                                checked: configAppearance.isGroupChecked(modelData)
+                                checked: (configAppearance.cfg_selectedGroup || "").split("|").map(function(s) { return s.trim(); }).indexOf(modelData) !== -1
                                 onToggled: configAppearance.toggleGroupSelection(modelData, checked)
                             }
                         }
@@ -416,6 +426,12 @@ KCM.SimpleKCM {
             text: "Show monitor tags"
             checked: configAppearance.cfg_showTags
             onCheckedChanged: configAppearance.cfg_showTags = checked
+        }
+
+        QQC2.CheckBox {
+            text: "Show heartbeat history bars"
+            checked: configAppearance.cfg_showHeartbeats
+            onCheckedChanged: configAppearance.cfg_showHeartbeats = checked
         }
     }
 }

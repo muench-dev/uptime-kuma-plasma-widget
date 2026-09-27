@@ -25,8 +25,8 @@ MouseArea {
     }
     readonly property bool showLabel: !isVertical && displayMode !== "badgeOnly"
 
-    implicitWidth: isVertical ? PlasmaCore.Units.iconSizes.small : (isPlanar ? Math.max(contentLayout.implicitWidth + Kirigami.Units.largeSpacing * 2, Kirigami.Units.gridUnit * 4) : (contentLayout.implicitWidth + Kirigami.Units.smallSpacing * 2))
-    implicitHeight: isVertical ? (contentLayout.implicitHeight + Kirigami.Units.smallSpacing * 2) : (isPlanar ? Math.max(contentLayout.implicitHeight + Kirigami.Units.smallSpacing * 2, Kirigami.Units.gridUnit * 2) : PlasmaCore.Units.iconSizes.small)
+    implicitWidth: isVertical ? Kirigami.Units.iconSizes.small : (isPlanar ? Math.max(contentLayout.implicitWidth + Kirigami.Units.largeSpacing * 2, Kirigami.Units.gridUnit * 4) : (contentLayout.implicitWidth + Kirigami.Units.smallSpacing * 2))
+    implicitHeight: isVertical ? (contentLayout.implicitHeight + Kirigami.Units.smallSpacing * 2) : (isPlanar ? Math.max(contentLayout.implicitHeight + Kirigami.Units.smallSpacing * 2, Kirigami.Units.gridUnit * 2) : Kirigami.Units.iconSizes.small)
 
     Layout.preferredWidth: implicitWidth
     Layout.preferredHeight: implicitHeight
@@ -60,12 +60,12 @@ MouseArea {
         // Applet Icon with status badge
         Item {
             id: iconItem
-            implicitWidth: PlasmaCore.Units.iconSizes.small
-            implicitHeight: PlasmaCore.Units.iconSizes.small
-            width: PlasmaCore.Units.iconSizes.small
-            height: PlasmaCore.Units.iconSizes.small
-            Layout.preferredWidth: PlasmaCore.Units.iconSizes.small
-            Layout.preferredHeight: PlasmaCore.Units.iconSizes.small
+            implicitWidth: Kirigami.Units.iconSizes.small
+            implicitHeight: Kirigami.Units.iconSizes.small
+            width: Kirigami.Units.iconSizes.small
+            height: Kirigami.Units.iconSizes.small
+            Layout.preferredWidth: Kirigami.Units.iconSizes.small
+            Layout.preferredHeight: Kirigami.Units.iconSizes.small
             Layout.alignment: Qt.AlignVCenter
 
             Image {

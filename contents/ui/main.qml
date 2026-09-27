@@ -9,23 +9,15 @@ PlasmoidItem {
 
     property string activeGroup: Plasmoid.configuration.selectedGroup || ""
     property var rawStatusData: null
-    property var statusData: null
-
-    function updateFilteredStatus() {
+    readonly property var statusData: {
         if (!rawStatusData) {
-            root.statusData = null;
-            return;
+            return null;
         }
-        var selected = root.activeGroup || Plasmoid.configuration.selectedGroup || "";
+        var selected = Plasmoid.configuration.selectedGroup || root.activeGroup || "";
         if (!selected || selected.trim().length === 0 || selected === "all") {
-            root.statusData = root.rawStatusData;
-        } else {
-            root.statusData = KumaService.filterByGroup(root.rawStatusData, selected);
+            return root.rawStatusData;
         }
-    }
-
-    onActiveGroupChanged: {
-        updateFilteredStatus();
+        return KumaService.filterByGroup(root.rawStatusData, selected);
     }
     property bool isLoading: false
     property bool hasError: false
@@ -110,7 +102,6 @@ PlasmoidItem {
         }
         function onSelectedGroupChanged() {
             root.activeGroup = Plasmoid.configuration.selectedGroup || "";
-            root.updateFilteredStatus();
             if (root.statusData && root.statusData.monitors && root.statusData.monitors.length === 0 && Plasmoid.configuration.authHeader) {
                 root.fetchData();
             }
@@ -118,10 +109,13 @@ PlasmoidItem {
         function onValueChanged(key, value) {
             if (key === "selectedGroup") {
                 root.activeGroup = value || "";
-                root.updateFilteredStatus();
                 if (root.statusData && root.statusData.monitors && root.statusData.monitors.length === 0 && Plasmoid.configuration.authHeader) {
                     root.fetchData();
                 }
+            } else if (key === "serverUrl" || key === "slug" || key === "authHeader") {
+                root.fetchData();
+            } else if (key === "updateInterval") {
+                refreshTimer.restart();
             }
         }
         function onUpdateIntervalChanged() {
@@ -190,7 +184,6 @@ PlasmoidItem {
             }
 
             root.rawStatusData = data;
-            root.updateFilteredStatus();
 
         }, function(errorMsg) {
             root.isLoading = false;
@@ -206,7 +199,6 @@ PlasmoidItem {
             Plasmoid.configuration.availableGroups = demoGroups.join("|");
         }
         root.rawStatusData = demo;
-        root.updateFilteredStatus();
         root.lastUpdated = new Date();
         root.hasError = false;
         root.errorMessage = "";

@@ -49,5 +49,8 @@
         <entry name="showTags" type="Bool">
             <default>true</default>
         </entry>
+        <entry name="showHeartbeats" type="Bool">
+            <default>true</default>
+        </entry>
     </group>
 </kcfg>

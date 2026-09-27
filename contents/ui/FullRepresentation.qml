@@ -33,7 +33,14 @@ PlasmaExtras.Representation {
         collapsedGroups = copy;
     }
 
-    readonly property var statusData: root.statusData
+    readonly property var statusData: {
+        var base = root.statusData;
+        var filter = Plasmoid.configuration.selectedGroup || "";
+        if (!base) return null;
+        if (!filter || filter.trim().length === 0 || filter === "all") return base;
+        if (base.groupFilter === filter) return base;
+        return KumaService.filterByGroup(base, filter);
+    }
     readonly property var stats: statusData ? statusData.stats : null
 
     readonly property var filteredMonitors: {
@@ -429,7 +436,7 @@ PlasmaExtras.Representation {
                     monitor: modelData
                     showLatency: Plasmoid.configuration.showLatency
                     showUptimePercent: Plasmoid.configuration.showUptimePercent
-                    showHeartbeats: Plasmoid.configuration.showHeartbeats
+                    showHeartbeats: Plasmoid.configuration.showHeartbeats !== false
                     showTags: Plasmoid.configuration.showTags
                     heartbeatCount: Plasmoid.configuration.heartbeatCount
                 }
@@ -604,7 +611,7 @@ PlasmaExtras.Representation {
                                     monitor: modelData
                                     showLatency: Plasmoid.configuration.showLatency
                                     showUptimePercent: Plasmoid.configuration.showUptimePercent
-                                    showHeartbeats: Plasmoid.configuration.showHeartbeats
+                                    showHeartbeats: Plasmoid.configuration.showHeartbeats !== false
                                     showTags: Plasmoid.configuration.showTags
                                     heartbeatCount: Plasmoid.configuration.heartbeatCount
                                 }

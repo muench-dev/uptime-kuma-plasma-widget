@@ -150,7 +150,13 @@ function getAuthHeaders(rawAuth) {
 /**
  * Perform an HTTP request with custom headers
  */
-function requestHttp(url, authHeader, acceptHeader, onSuccess, onError) {
+function requestHttp(url, authHeader, acceptHeader, onSuccess, onError, redirectCount) {
+    redirectCount = redirectCount || 0;
+    if (redirectCount > 5) {
+        if (onError) onError("Too many HTTP redirects", 310);
+        return;
+    }
+
     var xhr = new XMLHttpRequest();
     xhr.open("GET", url, true);
     if (acceptHeader) {
@@ -177,6 +183,17 @@ function requestHttp(url, authHeader, acceptHeader, onSuccess, onError) {
                 } catch (e) {
                     if (onError) onError("Error processing response: " + e.message, xhr.status);
                 }
+            } else if (xhr.status >= 301 && xhr.status <= 308) {
+                var redirectLocation = xhr.getResponseHeader("Location");
+                if (redirectLocation) {
+                    if (redirectLocation.startsWith("/")) {
+                        var parsedOrigin = url.match(/^(https?:\/\/[^\/]+)/i);
+                        if (parsedOrigin) redirectLocation = parsedOrigin[1] + redirectLocation;
+                    }
+                    requestHttp(redirectLocation, authHeader, acceptHeader, onSuccess, onError, redirectCount + 1);
+                    return;
+                }
+                if (onError) onError("HTTP redirect " + xhr.status + " without Location header", xhr.status);
             } else if (xhr.status === 404) {
                 if (onError) onError("Not found (HTTP 404)", 404);
             } else if (xhr.status === 401 || xhr.status === 403) {
@@ -1047,20 +1064,21 @@ function filterByGroup(statusData, groupFilter) {
     var matchedMonitors = [];
     var seenMonitorIds = {};
 
-    function matchesAnyTarget(gName, mName) {
-        var gn = (gName || "").toLowerCase();
-        var mn = (mName || "").toLowerCase();
+    function matchesAnyTarget(gName, mType, mName) {
+        var gn = (gName || "").trim().toLowerCase();
+        var isGroupType = (mType || "").toLowerCase() === "group";
+        var mn = (mName || "").trim().toLowerCase();
         for (var t = 0; t < targetLowers.length; t++) {
             var target = targetLowers[t];
-            if (gn === target || mn === target) return true;
-            if (gn.indexOf(target) !== -1 || mn.indexOf(target) !== -1) return true;
+            if (gn === target) return true;
+            if (isGroupType && mn === target) return true;
         }
         return false;
     }
 
     for (var i = 0; i < allMonitors.length; i++) {
         var mon = allMonitors[i];
-        if (matchesAnyTarget(mon.groupName, mon.name)) {
+        if (matchesAnyTarget(mon.groupName, mon.type, mon.name)) {
             if (!seenMonitorIds[mon.id]) {
                 seenMonitorIds[mon.id] = true;
                 matchedMonitors.push(mon);
@@ -1072,10 +1090,10 @@ function filterByGroup(statusData, groupFilter) {
     if (statusData.groups && Array.isArray(statusData.groups)) {
         for (var g = 0; g < statusData.groups.length; g++) {
             var grp = statusData.groups[g];
-            var gNameLower = (grp.name || "").toLowerCase();
+            var gNameLower = (grp.name || "").trim().toLowerCase();
             var isTargetGroup = false;
             for (var tg = 0; tg < targetLowers.length; tg++) {
-                if (gNameLower === targetLowers[tg] || gNameLower.indexOf(targetLowers[tg]) !== -1) {
+                if (gNameLower === targetLowers[tg]) {
                     isTargetGroup = true;
                     break;
                 }
