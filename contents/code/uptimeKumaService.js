@@ -1221,13 +1221,6 @@ function fetchGroupsOnly(baseUrl, slug, authHeader, callback, errorCallback) {
                 if (grp.name && grp.name.trim().length > 0) {
                     groupSet[grp.name.trim()] = true;
                 }
-                var mList = grp.monitorList || [];
-                for (var m = 0; m < mList.length; m++) {
-                    var mon = mList[m];
-                    if ((mon.type === "group" || mon.type === "GROUP") && mon.name && mon.name.trim().length > 0) {
-                        groupSet[mon.name.trim()] = true;
-                    }
-                }
             }
 
             var result = Object.keys(groupSet).sort();
@@ -1278,4 +1271,3 @@ function fetchGroupsFromMetrics(baseUrl, candidates, index, callback, errorCallb
         }
     });
 }
-
