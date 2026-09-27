@@ -474,7 +474,7 @@ PlasmaExtras.Representation {
                     implicitHeight: groupCardLayout.implicitHeight + Kirigami.Units.smallSpacing * 2
                     radius: Kirigami.Units.cornerRadius
                     color: Qt.rgba(Kirigami.Theme.backgroundColor.r, Kirigami.Theme.backgroundColor.g, Kirigami.Theme.backgroundColor.b, 0.65)
-                    border.color: modelData.stats.down > 0 
+                    border.color: (modelData.stats && modelData.stats.down > 0) 
                         ? Qt.rgba(0.92, 0.25, 0.25, 0.7) 
                         : Kirigami.Theme.separatorColor
                     border.width: 1
@@ -534,7 +534,7 @@ PlasmaExtras.Representation {
 
                                 // Ping badge (if enabled)
                                 Rectangle {
-                                    visible: Plasmoid.configuration.showLatency && modelData.stats.averagePing !== null
+                                    visible: Plasmoid.configuration.showLatency && modelData.stats && modelData.stats.averagePing !== null
                                     implicitWidth: grpPingText.implicitWidth + 12
                                     implicitHeight: 20
                                     radius: 10
@@ -544,16 +544,16 @@ PlasmaExtras.Representation {
                                     QQC2.Label {
                                         id: grpPingText
                                         anchors.centerIn: parent
-                                        text: modelData.stats.averagePing + " ms"
+                                        text: (modelData.stats && modelData.stats.averagePing !== null) ? (modelData.stats.averagePing + " ms") : ""
                                         font.pointSize: Kirigami.Theme.smallFont.pointSize
                                         font.bold: true
-                                        color: KumaService.getPingColor(modelData.stats.averagePing)
+                                        color: (modelData.stats && modelData.stats.averagePing !== null) ? KumaService.getPingColor(modelData.stats.averagePing) : Kirigami.Theme.textColor
                                     }
                                 }
 
                                 // 24h Uptime badge (if enabled)
                                 Rectangle {
-                                    visible: Plasmoid.configuration.showUptimePercent
+                                    visible: Plasmoid.configuration.showUptimePercent && modelData.stats && modelData.stats.overallUptime !== undefined
                                     implicitWidth: grpUptimeText.implicitWidth + 12
                                     implicitHeight: 20
                                     radius: 10
@@ -563,7 +563,7 @@ PlasmaExtras.Representation {
                                     QQC2.Label {
                                         id: grpUptimeText
                                         anchors.centerIn: parent
-                                        text: modelData.stats.overallUptime.toFixed(1) + "%"
+                                        text: (modelData.stats && modelData.stats.overallUptime !== undefined) ? (modelData.stats.overallUptime.toFixed(1) + "%") : ""
                                         font.pointSize: Kirigami.Theme.smallFont.pointSize
                                         opacity: 0.85
                                     }
@@ -575,6 +575,7 @@ PlasmaExtras.Representation {
                                     implicitHeight: 22
                                     radius: 11
                                     color: {
+                                        if (!modelData.stats) return "#2ecc71";
                                         if (modelData.stats.down > 0) return "#e74c3c";
                                         if (modelData.stats.pending > 0) return "#f39c12";
                                         return "#2ecc71";
@@ -585,6 +586,7 @@ PlasmaExtras.Representation {
                                         id: grpStatusText
                                         anchors.centerIn: parent
                                         text: {
+                                            if (!modelData.stats) return "";
                                             if (modelData.stats.down > 0) return modelData.stats.down + " Down";
                                             if (modelData.stats.pending > 0) return modelData.stats.pending + " Pending";
                                             return modelData.stats.up + "/" + modelData.stats.total + " Up";
