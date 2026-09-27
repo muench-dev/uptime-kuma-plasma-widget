@@ -1185,9 +1185,14 @@ function fetchGroupsOnly(baseUrl, slug, authHeader, callback, errorCallback) {
     var authCandidates = getAuthHeaders(authHeader);
     var primaryAuth = authCandidates[0] || "";
     var slugCandidates = getSlugCandidates(parsed.slug);
+    var hasStatusPageSlug = slug && slug.trim().length > 0;
 
     function tryStatusPageGroup(index) {
         if (index >= slugCandidates.length) {
+            if (hasStatusPageSlug) {
+                if (errorCallback) errorCallback("Status page not found for '" + parsed.slug + "'.");
+                return;
+            }
             // Fallback to /metrics
             fetchGroupsFromMetrics(parsed.baseUrl, authCandidates, 0, function(groups) {
                 if (callback) callback(groups);
@@ -1273,5 +1278,4 @@ function fetchGroupsFromMetrics(baseUrl, candidates, index, callback, errorCallb
         }
     });
 }
-
 

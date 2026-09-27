@@ -10,6 +10,7 @@ KCM.SimpleKCM {
     id: configAppearance
 
     property string cfg_desktopMode
+    property bool cfg_groupsCollapsedByDefault
     property string cfg_selectedGroup
     property string cfg_availableGroups
     property string cfg_compactDisplayMode
@@ -20,6 +21,7 @@ KCM.SimpleKCM {
     property bool cfg_showHeartbeats
 
     property string cfg_desktopModeDefault: "full"
+    property bool cfg_groupsCollapsedByDefaultDefault: false
     property string cfg_selectedGroupDefault: ""
     property string cfg_availableGroupsDefault: ""
     property string cfg_compactDisplayModeDefault: "textAndBadge"
@@ -122,7 +124,7 @@ KCM.SimpleKCM {
 
     function refreshGroupsFromApi() {
         var sUrl = Plasmoid.configuration.serverUrl;
-        var slug = Plasmoid.configuration.slug || "default";
+        var slug = Plasmoid.configuration.slug || "";
         var auth = Plasmoid.configuration.authHeader || "";
 
         if (!sUrl || sUrl.trim().length === 0) {
@@ -137,13 +139,19 @@ KCM.SimpleKCM {
         KumaService.fetchGroupsOnly(sUrl, slug, auth, function(groups) {
             fetchTimeoutTimer.stop();
             isFetchingGroups = false;
-            if (groups && groups.length > 0) {
-                configAppearance.cfg_availableGroups = groups.join("|");
-                Plasmoid.configuration.availableGroups = groups.join("|");
-                groupFetchStatus = "Found " + groups.length + " group" + (groups.length === 1 ? "" : "s") + " from server.";
+            if (groups) {
+                var groupValue = groups.join("|");
+                configAppearance.cfg_availableGroups = groupValue;
+                Plasmoid.configuration.availableGroups = groupValue;
+                var selectedGroups = getSelectedGroupList().filter(function(group) {
+                    return groups.indexOf(group) !== -1;
+                });
+                configAppearance.cfg_selectedGroup = selectedGroups.join("|");
+                Plasmoid.configuration.selectedGroup = configAppearance.cfg_selectedGroup;
+                groupFetchStatus = groups.length > 0
+                    ? "Found " + groups.length + " group" + (groups.length === 1 ? "" : "s") + " from server."
+                    : "No groups found on status page.";
                 updateGroupList();
-            } else {
-                groupFetchStatus = "No groups found on status page.";
             }
         }, function(errorMsg) {
             fetchTimeoutTimer.stop();
@@ -212,6 +220,13 @@ KCM.SimpleKCM {
                 checked: configAppearance.cfg_desktopMode === "compact"
                 onToggled: if (checked) configAppearance.cfg_desktopMode = "compact"
             }
+        }
+
+        QQC2.CheckBox {
+            Kirigami.FormData.label: "Grouped dashboard:"
+            text: "Collapse groups by default"
+            checked: configAppearance.cfg_groupsCollapsedByDefault
+            onCheckedChanged: configAppearance.cfg_groupsCollapsedByDefault = checked
         }
 
         ColumnLayout {
