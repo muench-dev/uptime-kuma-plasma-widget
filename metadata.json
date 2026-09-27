@@ -1,0 +1,29 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Christian Muench"
+            }
+        ],
+        "Category": "Network",
+        "Description": "Monitor your servers and services status with Uptime Kuma (Compatible with KDE Plasma 6+ and Uptime Kuma 1.x & 2.x)",
+        "Icon": "network-server",
+        "Id": "dev.muench.uptime-kuma",
+        "License": "MIT",
+        "Name": "Uptime Kuma",
+        "Version": "1.0.0",
+        "Website": "https://github.com/muench-dev/uptime-kuma-plasma-widget",
+        "BugReportUrl": "https://github.com/muench-dev/uptime-kuma-plasma-widget/issues",
+        "Compatibility": {
+            "Plasma": ">= 6.0",
+            "UptimeKuma": ">= 1.20 (1.x, 2.x)"
+        }
+    },
+    "X-Plasma-API": "declarativeappletscript",
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "X-Plasma-RequiredPlasmaVersion": "6.0",
+    "X-Plasma-MainScript": "ui/main.qml",
+    "X-Plasma-NotificationArea": "true",
+    "X-Plasma-NotificationAreaCategory": "SystemServices"
+}

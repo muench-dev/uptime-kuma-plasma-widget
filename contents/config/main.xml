@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+      http://www.kde.org/standards/kcfg/1.0/kcfg.xsd" >
+    <kcfgfile name=""/>
+
+    <group name="General">
+        <entry name="serverUrl" type="String">
+            <default></default>
+        </entry>
+        <entry name="slug" type="String">
+            <default>default</default>
+        </entry>
+        <entry name="authHeader" type="String">
+            <default></default>
+        </entry>
+        <entry name="updateInterval" type="Int">
+            <default>60</default>
+        </entry>
+        <entry name="notifyOnStatusChange" type="Bool">
+            <default>true</default>
+        </entry>
+        <entry name="pinned" type="Bool">
+            <default>false</default>
+        </entry>
+
+        <entry name="desktopMode" type="String">
+            <default>full</default>
+        </entry>
+        <entry name="selectedGroup" type="String">
+            <default></default>
+        </entry>
+        <entry name="availableGroups" type="String">
+            <default></default>
+        </entry>
+        <entry name="compactDisplayMode" type="String">
+            <default>textAndBadge</default>
+        </entry>
+        <entry name="heartbeatCount" type="Int">
+            <default>25</default>
+        </entry>
+        <entry name="showLatency" type="Bool">
+            <default>true</default>
+        </entry>
+        <entry name="showUptimePercent" type="Bool">
+            <default>true</default>
+        </entry>
+        <entry name="showTags" type="Bool">
+            <default>true</default>
+        </entry>
+    </group>
+</kcfg>

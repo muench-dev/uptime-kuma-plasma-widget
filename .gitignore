@@ -1,0 +1,7 @@
+*.kate-swp
+*.qmlc
+*.jsc
+*.bak
+*~
+.DS_Store
+*.plasmoid
