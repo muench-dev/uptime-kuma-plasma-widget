@@ -1185,7 +1185,8 @@ function fetchGroupsOnly(baseUrl, slug, authHeader, callback, errorCallback) {
     var authCandidates = getAuthHeaders(authHeader);
     var primaryAuth = authCandidates[0] || "";
     var slugCandidates = getSlugCandidates(parsed.slug);
-    var hasStatusPageSlug = slug && slug.trim().length > 0;
+    // "default" is the implicit dashboard, so retain the /metrics fallback when it has no status page.
+    var hasStatusPageSlug = slug && slug.trim().length > 0 && slug.trim().toLowerCase() !== "default";
 
     function tryStatusPageGroup(index) {
         if (index >= slugCandidates.length) {
