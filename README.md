@@ -129,7 +129,7 @@ Right-click the widget and select **"Configure Uptime Kuma..."** to customize yo
 |---|---|---|
 | **KDE Plasma** | **6.0+** (6.0, 6.1, 6.2+) | Built natively for **KDE Plasma 6** using Qt 6 & Kirigami 3. *(Note: KDE Plasma 5 is not supported)* |
 | **Qt** | **6.6+** | Required by KDE Plasma 6 runtime |
-| **Uptime Kuma** | **1.x** (v1.20+) & **2.x** (v2.0+) | Full support for status page endpoints (`/api/status-page/:slug`), API keys, and `/metrics` fallback |
+| **Uptime Kuma** | **1.x** (v1.12+) & **2.x** (v2.0+) | Full support for status page endpoints (`/api/status-page/:slug`), incidents, and `/metrics` fallback (API keys supported since v1.21+) |
 | **KDE Frameworks** | **6.0+** | Kirigami, PlasmaCore, PlasmaExtras, PlasmaComponents3, KCMUtils |
 
 ---

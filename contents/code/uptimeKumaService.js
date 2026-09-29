@@ -439,7 +439,7 @@ function processPrometheusMetrics(rawMetrics, baseUrl, maxHistory) {
             var pLabels = parsePrometheusLabels(pLine);
             var pType = (pLabels.monitor_type || "").toLowerCase();
             var pName = pLabels.monitor_name || "";
-            var pId = pLabels.monitor_id;
+            var pId = pLabels.monitor_id || pName;
             if (pType === "group") {
                 curGroup = pName;
                 if (knownGroups.indexOf(pName) === -1) {
@@ -451,6 +451,7 @@ function processPrometheusMetrics(rawMetrics, baseUrl, maxHistory) {
         }
     }
 
+    var autoNumericId = 1;
     for (var i = 0; i < lines.length; i++) {
         var line = lines[i].trim();
         if (!line || line.startsWith("#")) continue;
@@ -463,23 +464,25 @@ function processPrometheusMetrics(rawMetrics, baseUrl, maxHistory) {
         var metricVal = parseFloat(match[3]);
 
         var labels = parsePrometheusLabels(line);
-        var id = labels.monitor_id;
-        if (!id) continue;
+        // Uptime Kuma v2 provides monitor_id; v1 provides monitor_name without monitor_id
+        var idKey = labels.monitor_id || labels.monitor_name;
+        if (!idKey) continue;
 
         var mType = (labels.monitor_type || "http").toUpperCase();
         // Skip synthetic group monitors from being treated as child monitors
         if (mType === "GROUP") continue;
 
-        var mName = labels.monitor_name || ("Monitor #" + id);
+        var mName = labels.monitor_name || ("Monitor #" + idKey);
 
-        if (!monitors[id]) {
+        if (!monitors[idKey]) {
             var mUrl = labels.monitor_url && labels.monitor_url !== "https://" && labels.monitor_url !== "http://" && labels.monitor_url !== "null" ? labels.monitor_url : "";
             var mHost = labels.monitor_hostname && labels.monitor_hostname !== "null" ? labels.monitor_hostname : "";
             var mPort = labels.monitor_port && labels.monitor_port !== "null" ? parseInt(labels.monitor_port) : null;
-            var assignedGroup = monitorGroupMap[id] || labels.monitor_group || "Default";
+            var assignedGroup = monitorGroupMap[idKey] || labels.monitor_group || "Default";
+            var numericId = labels.monitor_id ? parseInt(labels.monitor_id) : autoNumericId++;
 
-            monitors[id] = {
-                id: parseInt(id),
+            monitors[idKey] = {
+                id: numericId,
                 name: mName,
                 groupName: assignedGroup,
                 type: mType,
@@ -494,13 +497,15 @@ function processPrometheusMetrics(rawMetrics, baseUrl, maxHistory) {
         }
 
         if (metricName === "monitor_status") {
-            monitors[id].status = Math.round(metricVal);
+            monitors[idKey].status = Math.round(metricVal);
         } else if (metricName === "monitor_response_time") {
-            monitors[id].ping = Math.round(metricVal);
+            // Note: Uptime Kuma v1 sets response time to -1 if monitor is down or unmeasured
+            var pVal = Math.round(metricVal);
+            monitors[idKey].ping = pVal >= 0 ? pVal : null;
         } else if (metricName === "monitor_uptime_ratio" && labels.window === "1d") {
-            monitors[id].uptime24h = Math.round(metricVal * 10000) / 100;
+            monitors[idKey].uptime24h = Math.round(metricVal * 10000) / 100;
         } else if (metricName === "monitor_cert_days_remaining") {
-            monitors[id].certDays = Math.round(metricVal);
+            monitors[idKey].certDays = Math.round(metricVal);
         }
     }
 
@@ -617,7 +622,15 @@ function processApiData(statusPageData, heartbeatData, baseUrl, slug, maxHistory
     maxHistory = maxHistory || 25;
     var config = statusPageData.config || {};
     var publicGroupList = statusPageData.publicGroupList || [];
-    var incidents = statusPageData.incidents || [];
+    // Uptime Kuma v2 returns `incidents` (array), v1 returns `incident` (single object or null)
+    var incidents = statusPageData.incidents;
+    if (!Array.isArray(incidents)) {
+        if (statusPageData.incident) {
+            incidents = [statusPageData.incident];
+        } else {
+            incidents = [];
+        }
+    }
     var heartbeatList = (heartbeatData && heartbeatData.heartbeatList) ? heartbeatData.heartbeatList : {};
     var uptimeList = (heartbeatData && heartbeatData.uptimeList) ? heartbeatData.uptimeList : {};
 
