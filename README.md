@@ -141,6 +141,8 @@ This project includes a [`justfile`](justfile) with handy automation recipes:
 ```bash
 just package    # Build .plasmoid package archive
 just lint       # Check all QML files with qmllint
+just validate   # Validate metadata.json and config XML schemas
+just test-unit  # Run Node.js service test suite
 just test       # Launch widget in a standalone window (plasmawindowed)
 just install    # Link widget into ~/.local/share/plasma/plasmoids/
 just uninstall  # Remove widget from ~/.local/share/plasma/plasmoids/

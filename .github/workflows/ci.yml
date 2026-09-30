@@ -1,0 +1,117 @@
+name: CI - Validate & Test Widget
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  validate-and-test:
+    name: Validate and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            jq \
+            libxml2-utils \
+            zip \
+            unzip \
+            qt6-declarative-dev-tools
+          echo "/usr/lib/qt6/bin" >> $GITHUB_PATH
+
+      - name: Validate metadata.json
+        run: |
+          echo "Checking JSON validity..."
+          jq . metadata.json > /dev/null
+
+          echo "Verifying required Plasma 6 metadata fields..."
+          APPLET_ID=$(jq -r '.KPlugin.Id' metadata.json)
+          API_VERSION=$(jq -r '."X-Plasma-API-Minimum-Version"' metadata.json)
+          MAIN_SCRIPT=$(jq -r '."X-Plasma-MainScript"' metadata.json)
+          PLUGIN_VERSION=$(jq -r '.KPlugin.Version' metadata.json)
+
+          if [ "$APPLET_ID" != "dev.muench.uptime-kuma" ]; then
+            echo "Error: Unexpected plugin ID '$APPLET_ID'"
+            exit 1
+          fi
+
+          if [ "$API_VERSION" != "6.0" ]; then
+            echo "Error: Invalid X-Plasma-API-Minimum-Version '$API_VERSION', expected '6.0'"
+            exit 1
+          fi
+
+          if [ "$MAIN_SCRIPT" != "ui/main.qml" ]; then
+            echo "Error: Invalid X-Plasma-MainScript '$MAIN_SCRIPT', expected 'ui/main.qml'"
+            exit 1
+          fi
+
+          echo "Metadata verified: $APPLET_ID v$PLUGIN_VERSION (Plasma API $API_VERSION)"
+
+      - name: Validate Config XML
+        run: |
+          echo "Validating contents/config/main.xml syntax..."
+          xmllint --noout contents/config/main.xml
+          echo "Config XML is valid."
+
+      - name: Run Unit Tests
+        run: |
+          echo "Running Node.js service unit test suite..."
+          node --test tests/*.test.js
+
+      - name: Lint QML & JavaScript
+        run: |
+          echo "Checking syntax with qmllint..."
+          qmllint contents/ui/*.qml contents/ui/config/*.qml contents/code/*.js
+          echo "All QML and JavaScript files passed linting."
+
+      - name: Build Plasmoid Package
+        run: |
+          VERSION=$(jq -r '.KPlugin.Version // "1.0.0"' metadata.json)
+          PKG_NAME="dev.muench.uptime-kuma.plasmoid"
+          PKG_VERSIONED="dev.muench.uptime-kuma-v${VERSION}.plasmoid"
+
+          echo "Packaging plasmoid as $PKG_NAME..."
+          zip -r "$PKG_NAME" metadata.json contents/ LICENSE README.md -x "*.DS_Store" "*~" "*.swp"
+          cp "$PKG_NAME" "$PKG_VERSIONED"
+
+          echo "Package created successfully."
+          ls -lh *.plasmoid
+
+      - name: Verify Package Structure
+        run: |
+          PKG_NAME="dev.muench.uptime-kuma.plasmoid"
+          echo "Verifying contents of $PKG_NAME..."
+          unzip -l "$PKG_NAME"
+
+          # Ensure critical files are present in the archive
+          unzip -l "$PKG_NAME" | grep -q " metadata.json$" || { echo "Missing metadata.json"; exit 1; }
+          unzip -l "$PKG_NAME" | grep -q " contents/ui/main.qml$" || { echo "Missing main.qml"; exit 1; }
+          unzip -l "$PKG_NAME" | grep -q " contents/code/uptimeKumaService.js$" || { echo "Missing service script"; exit 1; }
+          unzip -l "$PKG_NAME" | grep -q " contents/config/main.xml$" || { echo "Missing main.xml"; exit 1; }
+          unzip -l "$PKG_NAME" | grep -q " LICENSE$" || { echo "Missing LICENSE"; exit 1; }
+
+          echo "Package structure verified successfully."
+
+      - name: Upload Plasmoid Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dev.muench.uptime-kuma-plasmoid
+          path: dev.muench.uptime-kuma.plasmoid
+          retention-days: 14

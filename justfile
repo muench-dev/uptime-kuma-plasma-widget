@@ -31,6 +31,15 @@ plasmoid: package
 lint:
     qmllint contents/ui/*.qml contents/ui/config/*.qml
 
+# Validate metadata and config XML schemas
+validate:
+    jq . metadata.json > /dev/null
+    xmllint --noout contents/config/main.xml
+
+# Run unit tests
+test-unit:
+    node --test tests/*.test.js
+
 # Install development symlink to ~/.local/share/plasma/plasmoids/
 install:
     ./install.sh
