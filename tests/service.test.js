@@ -32,6 +32,7 @@ function loadService() {
         exports.STATUS_UP = STATUS_UP;
         exports.STATUS_PENDING = STATUS_PENDING;
         exports.STATUS_MAINTENANCE = STATUS_MAINTENANCE;
+        exports.resolvePrometheusMonitorGroup = resolvePrometheusMonitorGroup;
     `);
     fn(context);
     return context;
@@ -165,6 +166,65 @@ monitor_response_time{monitor_hostname="db.local",monitor_name="Database",monito
             assert.ok(mDown);
             assert.equal(mDown.status, service.STATUS_DOWN);
             assert.equal(mDown.ping, null, "Negative response time in v1 must be converted to null");
+        });
+
+        it("processes Prometheus metrics without creating fake groups when monitor_group is omitted", () => {
+            const rawMetrics = `
+# HELP monitor_status Monitor Status
+monitor_status{monitor_id="1",monitor_name="muench.lan Apps",monitor_type="group"} 1
+monitor_status{monitor_id="43",monitor_name="Gamserver",monitor_type="group"} 1
+monitor_status{monitor_id="45",monitor_name="Cosmic Island 2",monitor_type="gamedig",monitor_hostname="wing1.muench-worms.de"} 1
+monitor_status{monitor_id="51",monitor_name="ESMTP Server",monitor_type="port",monitor_hostname="mail.muench.dev"} 1
+monitor_status{monitor_id="64",monitor_name="Wifi Access Point - Flur",monitor_type="ping",monitor_hostname="192.168.1.15"} 1
+monitor_status{monitor_id="2",monitor_name="Postgres",monitor_type="postgres",monitor_url="https://postgres.muench.lan"} 1
+            `;
+
+            const data = service.processPrometheusMetrics(rawMetrics, "https://kuma.example", 25);
+
+            // Synthetic GROUP monitors should be skipped
+            assert.equal(data.monitors.length, 4, "Should have 4 real service monitors");
+            assert.ok(!data.monitors.some(m => m.name === "muench.lan Apps"));
+            assert.ok(!data.monitors.some(m => m.name === "Gamserver"));
+
+            // No groups should be fabricated
+            assert.equal(data.groups.length, 0, "No groups should be fabricated when monitor_group is omitted");
+
+            // extractGroups should be empty
+            const groups = service.extractGroups(data);
+            assert.equal(groups.length, 0);
+        });
+
+        it("groups Prometheus metrics when explicit monitor_group label is present", () => {
+            const rawMetrics = `
+# HELP monitor_status Monitor Status
+monitor_status{monitor_id="10",monitor_name="App 1",monitor_type="http",monitor_group="Production"} 1
+monitor_status{monitor_id="11",monitor_name="App 2",monitor_type="http",monitor_group="Production"} 1
+monitor_status{monitor_id="12",monitor_name="DB 1",monitor_type="postgres",monitor_group="Database"} 1
+            `;
+
+            const data = service.processPrometheusMetrics(rawMetrics, "https://kuma.example", 25);
+            assert.equal(data.groups.length, 2);
+            assert.equal(data.groups[0].name, "Production");
+            assert.equal(data.groups[0].monitors.length, 2);
+            assert.equal(data.groups[1].name, "Database");
+            assert.equal(data.groups[1].monitors.length, 1);
+
+            const filtered = service.filterByGroup(data, "Production");
+            assert.equal(filtered.monitors.length, 2);
+        });
+    });
+
+    describe("resolvePrometheusMonitorGroup", () => {
+        it("uses explicit monitor_group when available", () => {
+            const mon = { explicitGroup: "Custom Group", name: "Any Server", type: "http" };
+            assert.equal(service.resolvePrometheusMonitorGroup(mon), "Custom Group");
+        });
+
+        it("returns empty string when explicitGroup is omitted without guessing service names or IPs", () => {
+            assert.equal(service.resolvePrometheusMonitorGroup({ name: "Dragon SMP", type: "gamedig" }), "");
+            assert.equal(service.resolvePrometheusMonitorGroup({ name: "SMTP Server", type: "port", hostname: "mail.muench.dev" }), "");
+            assert.equal(service.resolvePrometheusMonitorGroup({ name: "Switch", type: "ping", hostname: "192.168.1.73" }), "");
+            assert.equal(service.resolvePrometheusMonitorGroup({ name: "App", type: "http", url: "https://app.lan" }), "");
         });
     });
 

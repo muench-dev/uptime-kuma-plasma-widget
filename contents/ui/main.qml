@@ -17,6 +17,9 @@ PlasmoidItem {
         if (!selected || selected.trim().length === 0 || selected === "all") {
             return root.rawStatusData;
         }
+        if (!root.rawStatusData.groups || root.rawStatusData.groups.length === 0) {
+            return root.rawStatusData;
+        }
         return KumaService.filterByGroup(root.rawStatusData, selected);
     }
     property bool isLoading: false
@@ -181,6 +184,8 @@ PlasmoidItem {
             var discoveredGroups = KumaService.extractGroups(data);
             if (discoveredGroups && discoveredGroups.length > 0) {
                 Plasmoid.configuration.availableGroups = discoveredGroups.join("|");
+            } else if (Plasmoid.configuration.slug === "default" || !Plasmoid.configuration.slug) {
+                Plasmoid.configuration.availableGroups = "";
             }
 
             root.rawStatusData = data;

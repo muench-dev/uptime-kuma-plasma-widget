@@ -148,9 +148,12 @@ KCM.SimpleKCM {
                 });
                 configAppearance.cfg_selectedGroup = selectedGroups.join("|");
                 Plasmoid.configuration.selectedGroup = configAppearance.cfg_selectedGroup;
+                var isDefaultSlug = !slug || slug.trim().length === 0 || slug.trim().toLowerCase() === "default";
                 groupFetchStatus = groups.length > 0
                     ? "Found " + groups.length + " group" + (groups.length === 1 ? "" : "s") + " from server."
-                    : "No groups found on status page.";
+                    : (isDefaultSlug
+                        ? "Groups are not supported for the default status page slug (metrics fallback). Configure a custom Status Page slug in General settings to use groups."
+                        : "No groups found on status page.");
                 updateGroupList();
             }
         }, function(errorMsg) {
@@ -305,7 +308,9 @@ KCM.SimpleKCM {
 
                         QQC2.Label {
                             visible: configAppearance.distinctGroupList.length === 0 && !configAppearance.isFetchingGroups
-                            text: "No groups found. Click Refresh to query groups from your Uptime Kuma instance."
+                            text: (Plasmoid.configuration.slug === "default" || !Plasmoid.configuration.slug)
+                                ? "Groups are not supported for the default status page slug.\nTo group or filter monitors by category, create a Status Page in Uptime Kuma and configure its slug in General settings."
+                                : "No groups found on status page. Click Refresh to query groups."
                             opacity: 0.7
                             font.pointSize: Kirigami.Theme.smallFont.pointSize
                             wrapMode: Text.Wrap

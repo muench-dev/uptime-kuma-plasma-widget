@@ -42,6 +42,7 @@ PlasmaExtras.Representation {
         var filter = Plasmoid.configuration.selectedGroup || "";
         if (!base) return null;
         if (!filter || filter.trim().length === 0 || filter === "all") return base;
+        if (!base.groups || base.groups.length === 0) return base;
         if (base.groupFilter === filter) return base;
         return KumaService.filterByGroup(base, filter);
     }
@@ -442,10 +443,10 @@ PlasmaExtras.Representation {
                 }
             }
 
-            // Flat monitor list (visible in full mode)
+            // Flat monitor list (visible in full mode or when no groups exist)
             ListView {
                 id: monitorList
-                visible: !fullRep.isGroupedMode
+                visible: !fullRep.isGroupedMode || fullRep.filteredGroups.length === 0
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true
@@ -478,10 +479,10 @@ PlasmaExtras.Representation {
                 }
             }
 
-            // Grouped section cards list (visible in grouped mode)
+            // Grouped section cards list (visible in grouped mode when groups exist)
             ListView {
                 id: groupSectionList
-                visible: fullRep.isGroupedMode
+                visible: fullRep.isGroupedMode && fullRep.filteredGroups.length > 0
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true

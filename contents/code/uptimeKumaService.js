@@ -421,6 +421,18 @@ function computeGroupStats(monitors) {
 }
 
 /**
+ * Resolves the appropriate group for a monitor parsed from Prometheus metrics.
+ * Prometheus /metrics from Uptime Kuma does not export monitor group hierarchies.
+ * Only returns explicit monitor_group label if provided; otherwise returns empty string.
+ */
+function resolvePrometheusMonitorGroup(mon, knownGroups, groupMonitors) {
+    if (mon && mon.explicitGroup && mon.explicitGroup.trim().length > 0) {
+        return mon.explicitGroup.trim();
+    }
+    return "";
+}
+
+/**
  * Parses Prometheus /metrics text exposition format from Uptime Kuma
  */
 function processPrometheusMetrics(rawMetrics, baseUrl, maxHistory) {
@@ -428,25 +440,17 @@ function processPrometheusMetrics(rawMetrics, baseUrl, maxHistory) {
     var monitors = {};
     var lines = rawMetrics.split("\n");
 
-    // Pre-scan to discover group hierarchy and map monitor id to sequential group
-    var monitorGroupMap = {};
+    // Pre-scan to discover explicit groups if provided via monitor_group label
     var knownGroups = [];
-    var curGroup = "Default";
-
     for (var p = 0; p < lines.length; p++) {
         var pLine = lines[p].trim();
-        if (pLine.startsWith("monitor_status{")) {
+        if (pLine.indexOf("{") !== -1) {
             var pLabels = parsePrometheusLabels(pLine);
-            var pType = (pLabels.monitor_type || "").toLowerCase();
-            var pName = pLabels.monitor_name || "";
-            var pId = pLabels.monitor_id || pName;
-            if (pType === "group") {
-                curGroup = pName;
-                if (knownGroups.indexOf(pName) === -1) {
-                    knownGroups.push(pName);
+            if (pLabels.monitor_group) {
+                var explicit = pLabels.monitor_group.trim();
+                if (explicit && knownGroups.indexOf(explicit) === -1) {
+                    knownGroups.push(explicit);
                 }
-            } else if (pId) {
-                monitorGroupMap[pId] = pLabels.monitor_group || curGroup;
             }
         }
     }
@@ -469,22 +473,22 @@ function processPrometheusMetrics(rawMetrics, baseUrl, maxHistory) {
         if (!idKey) continue;
 
         var mType = (labels.monitor_type || "http").toUpperCase();
-        // Skip synthetic group monitors from being treated as child monitors
-        if (mType === "GROUP") continue;
-
         var mName = labels.monitor_name || ("Monitor #" + idKey);
+        var numericId = labels.monitor_id ? parseInt(labels.monitor_id) : autoNumericId++;
+
+        // Skip synthetic aggregate group monitors
+        if (mType === "GROUP") continue;
 
         if (!monitors[idKey]) {
             var mUrl = labels.monitor_url && labels.monitor_url !== "https://" && labels.monitor_url !== "http://" && labels.monitor_url !== "null" ? labels.monitor_url : "";
             var mHost = labels.monitor_hostname && labels.monitor_hostname !== "null" ? labels.monitor_hostname : "";
             var mPort = labels.monitor_port && labels.monitor_port !== "null" ? parseInt(labels.monitor_port) : null;
-            var assignedGroup = monitorGroupMap[idKey] || labels.monitor_group || "Default";
-            var numericId = labels.monitor_id ? parseInt(labels.monitor_id) : autoNumericId++;
 
             monitors[idKey] = {
                 id: numericId,
                 name: mName,
-                groupName: assignedGroup,
+                groupName: labels.monitor_group || "",
+                explicitGroup: labels.monitor_group || "",
                 type: mType,
                 url: mUrl,
                 hostname: mHost,
@@ -494,6 +498,17 @@ function processPrometheusMetrics(rawMetrics, baseUrl, maxHistory) {
                 uptime24h: 100.0,
                 certDays: null
             };
+        }
+
+        // Accumulate missing URL / hostname / group attributes across diverse metric entries
+        if (labels.monitor_url && labels.monitor_url !== "https://" && labels.monitor_url !== "http://" && labels.monitor_url !== "null" && !monitors[idKey].url) {
+            monitors[idKey].url = labels.monitor_url;
+        }
+        if (labels.monitor_hostname && labels.monitor_hostname !== "null" && !monitors[idKey].hostname) {
+            monitors[idKey].hostname = labels.monitor_hostname;
+        }
+        if (labels.monitor_group && !monitors[idKey].explicitGroup) {
+            monitors[idKey].explicitGroup = labels.monitor_group;
         }
 
         if (metricName === "monitor_status") {
@@ -513,6 +528,7 @@ function processPrometheusMetrics(rawMetrics, baseUrl, maxHistory) {
     var keys = Object.keys(monitors);
     for (var j = 0; j < keys.length; j++) {
         var mon = monitors[keys[j]];
+        mon.groupName = resolvePrometheusMonitorGroup(mon, knownGroups);
 
         // Build tags
         var tags = [];
@@ -565,40 +581,30 @@ function processPrometheusMetrics(rawMetrics, baseUrl, maxHistory) {
 
     var cleanHost = baseUrl.replace(/^https?:\/\//, "");
 
-    var groupBuckets = {};
-    for (var mIdx = 0; mIdx < allMonitors.length; mIdx++) {
-        var monItem = allMonitors[mIdx];
-        var gName = monItem.groupName || "Default";
-        if (!groupBuckets[gName]) {
-            groupBuckets[gName] = [];
-        }
-        groupBuckets[gName].push(monItem);
-    }
-
-    // Preserve known group sequence
+    // Groups are only constructed if explicit monitor_group labels exist in metrics
     var metricGroups = [];
-    var orderedGroupNames = [];
-    for (var kg = 0; kg < knownGroups.length; kg++) {
-        if (groupBuckets[knownGroups[kg]] && orderedGroupNames.indexOf(knownGroups[kg]) === -1) {
-            orderedGroupNames.push(knownGroups[kg]);
+    if (knownGroups.length > 0) {
+        var groupBuckets = {};
+        for (var mIdx = 0; mIdx < allMonitors.length; mIdx++) {
+            var monItem = allMonitors[mIdx];
+            var gName = monItem.groupName;
+            if (gName) {
+                if (!groupBuckets[gName]) groupBuckets[gName] = [];
+                groupBuckets[gName].push(monItem);
+            }
         }
-    }
-    var remainingKeys = Object.keys(groupBuckets).sort();
-    for (var rk = 0; rk < remainingKeys.length; rk++) {
-        if (orderedGroupNames.indexOf(remainingKeys[rk]) === -1) {
-            orderedGroupNames.push(remainingKeys[rk]);
+        for (var gk = 0; gk < knownGroups.length; gk++) {
+            var grpName = knownGroups[gk];
+            var grpMons = groupBuckets[grpName];
+            if (grpMons && grpMons.length > 0) {
+                metricGroups.push({
+                    id: gk + 1,
+                    name: grpName,
+                    monitors: grpMons,
+                    stats: computeGroupStats(grpMons)
+                });
+            }
         }
-    }
-
-    for (var gk = 0; gk < orderedGroupNames.length; gk++) {
-        var grpName = orderedGroupNames[gk];
-        var grpMons = groupBuckets[grpName];
-        metricGroups.push({
-            id: gk + 1,
-            name: grpName,
-            monitors: grpMons,
-            stats: computeGroupStats(grpMons)
-        });
     }
 
     var overallStats = computeGroupStats(allMonitors);
@@ -1023,7 +1029,7 @@ function extractGroups(statusData) {
     if (statusData.groups && Array.isArray(statusData.groups)) {
         for (var i = 0; i < statusData.groups.length; i++) {
             var g = statusData.groups[i];
-            if (g && g.name && g.name.trim().length > 0) {
+            if (g && g.name && g.name.trim().length > 0 && g.name.trim().toLowerCase() !== "default") {
                 set[g.name.trim()] = true;
             }
         }
@@ -1031,11 +1037,8 @@ function extractGroups(statusData) {
     if (statusData.monitors && Array.isArray(statusData.monitors)) {
         for (var j = 0; j < statusData.monitors.length; j++) {
             var m = statusData.monitors[j];
-            if (m.groupName && m.groupName.trim().length > 0) {
+            if (m.groupName && m.groupName.trim().length > 0 && m.groupName.trim().toLowerCase() !== "default") {
                 set[m.groupName.trim()] = true;
-            }
-            if (m.type === "GROUP" && m.name && m.name.trim().length > 0) {
-                set[m.name.trim()] = true;
             }
         }
     }
@@ -1266,9 +1269,6 @@ function fetchGroupsFromMetrics(baseUrl, candidates, index, callback, errorCallb
                     var labels = parsePrometheusLabels(line);
                     if (labels.monitor_group && labels.monitor_group.trim().length > 0) {
                         groupSet[labels.monitor_group.trim()] = true;
-                    }
-                    if (labels.monitor_type && labels.monitor_type.toLowerCase() === "group" && labels.monitor_name) {
-                        groupSet[labels.monitor_name.trim()] = true;
                     }
                 }
             }
