@@ -12,7 +12,7 @@
         "Id": "dev.muench.uptime-kuma",
         "License": "MIT",
         "Name": "Uptime Kuma",
-        "Version": "1.0.0",
+        "Version": "1.1.0",
         "Website": "https://github.com/muench-dev/uptime-kuma-plasma-widget",
         "BugReportUrl": "https://github.com/muench-dev/uptime-kuma-plasma-widget/issues",
         "Compatibility": {
