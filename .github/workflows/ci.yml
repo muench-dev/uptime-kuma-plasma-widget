@@ -11,9 +11,6 @@ on:
       - main
   workflow_dispatch:
 
-env:
-  ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: "node24"
-
 jobs:
   validate-and-test:
     name: Validate and Test (Container)
@@ -21,13 +18,13 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build CI Validation Container
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile.ci
@@ -41,7 +38,7 @@ jobs:
           docker run --rm -v ${{ github.workspace }}:/workspace plasmoid-validator:latest
 
       - name: Upload Plasmoid Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dev.muench.uptime-kuma-plasmoid
           path: dev.muench.uptime-kuma.plasmoid
@@ -65,10 +62,10 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
 
