@@ -82,9 +82,13 @@ echo ""
 echo "========================================="
 echo "==> 6. Verifying Package Structure..."
 echo "========================================="
-unzip -l "$PKG_NAME" | grep -q " metadata.json$" || { echo "Missing metadata.json"; exit 1; }
-unzip -l "$PKG_NAME" | grep -q " contents/ui/main.qml$" || { echo "Missing main.qml"; exit 1; }
-unzip -l "$PKG_NAME" | grep -q " contents/code/uptimeKumaService.js$" || { echo "Missing service script"; exit 1; }
-unzip -l "$PKG_NAME" | grep -q " contents/config/main.xml$" || { echo "Missing main.xml"; exit 1; }
-unzip -l "$PKG_NAME" | grep -q " LICENSE$" || { echo "Missing LICENSE"; exit 1; }
+echo "Package contents:"
+unzip -l "$PKG_NAME"
+
+# Verify critical files are present
+unzip -Z1 "$PKG_NAME" | grep -q "^metadata\.json$" || { echo "Missing metadata.json"; exit 1; }
+unzip -Z1 "$PKG_NAME" | grep -q "^contents/ui/main\.qml$" || { echo "Missing main.qml"; exit 1; }
+unzip -Z1 "$PKG_NAME" | grep -q "^contents/code/uptimeKumaService\.js$" || { echo "Missing service script"; exit 1; }
+unzip -Z1 "$PKG_NAME" | grep -q "^contents/config/main\.xml$" || { echo "Missing main.xml"; exit 1; }
+unzip -Z1 "$PKG_NAME" | grep -q "^LICENSE$" || { echo "Missing LICENSE"; exit 1; }
 echo "✅ Package structure verified successfully."
