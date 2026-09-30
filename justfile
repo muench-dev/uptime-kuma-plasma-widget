@@ -69,3 +69,7 @@ test:
 # Clean built package files
 clean:
     rm -f *.plasmoid
+
+# Release a new version with release-it (e.g. just release, just release minor)
+release *args:
+    release-it {{args}}

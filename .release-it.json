@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/release-it",
+  "git": {
+    "commitMessage": "chore: release v${version}",
+    "tagName": "v${version}",
+    "tagAnnotation": "Release v${version}"
+  },
+  "github": {
+    "release": false,
+    "releaseName": "v${version}"
+  },
+  "npm": false,
+  "hooks": {
+    "after:bump": "node -e 'const fs = require(\"fs\"); const file = \"metadata.json\"; const data = JSON.parse(fs.readFileSync(file, \"utf8\")); data.KPlugin.Version = \"${version}\"; fs.writeFileSync(file, JSON.stringify(data, null, 4) + \"\\n\");'"
+  }
+}
