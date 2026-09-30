@@ -31,8 +31,8 @@ KCM.SimpleKCM {
             id: serverUrlField
             Kirigami.FormData.label: "Server URL:"
             placeholderText: "https://status.example.com or http://localhost:3001"
-            text: cfg_serverUrl
-            onTextChanged: cfg_serverUrl = text
+            text: configGeneral.cfg_serverUrl
+            onTextChanged: configGeneral.cfg_serverUrl = text
             Layout.fillWidth: true
         }
 
@@ -48,8 +48,8 @@ KCM.SimpleKCM {
             id: slugField
             Kirigami.FormData.label: "Status Page Slug:"
             placeholderText: "default"
-            text: cfg_slug
-            onTextChanged: cfg_slug = text
+            text: configGeneral.cfg_slug
+            onTextChanged: configGeneral.cfg_slug = text
             Layout.fillWidth: true
         }
 
@@ -65,9 +65,9 @@ KCM.SimpleKCM {
             id: authHeaderField
             Kirigami.FormData.label: "API Key / Auth Token:"
             placeholderText: "uk2_... or Bearer <token>"
-            text: cfg_authHeader
+            text: configGeneral.cfg_authHeader
             echoMode: TextInput.PasswordEchoOnEdit
-            onTextChanged: cfg_authHeader = text
+            onTextChanged: configGeneral.cfg_authHeader = text
             Layout.fillWidth: true
         }
 
@@ -93,8 +93,8 @@ KCM.SimpleKCM {
                 from: 15
                 to: 600
                 stepSize: 15
-                value: cfg_updateInterval
-                onValueChanged: cfg_updateInterval = value
+                value: configGeneral.cfg_updateInterval
+                onValueChanged: configGeneral.cfg_updateInterval = value
             }
 
             QQC2.Label {
@@ -105,8 +105,8 @@ KCM.SimpleKCM {
         QQC2.CheckBox {
             Kirigami.FormData.label: "Notifications:"
             text: "Notify when a service goes down or recovers"
-            checked: cfg_notifyOnStatusChange
-            onCheckedChanged: cfg_notifyOnStatusChange = checked
+            checked: configGeneral.cfg_notifyOnStatusChange
+            onCheckedChanged: configGeneral.cfg_notifyOnStatusChange = checked
         }
     }
 }

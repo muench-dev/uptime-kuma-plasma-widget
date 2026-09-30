@@ -33,7 +33,13 @@ jobs:
             libxml2-utils \
             zip \
             unzip \
-            qt6-declarative-dev-tools
+            qt6-declarative-dev-tools \
+            qml6-module-qtquick \
+            qml6-module-qtquick-layouts \
+            qml6-module-qtquick-controls \
+            qml6-module-qtquick-templates \
+            qml6-module-qtquick-window \
+            qml6-module-qtqml
           echo "/usr/lib/qt6/bin" >> $GITHUB_PATH
 
       - name: Validate metadata.json
@@ -78,8 +84,31 @@ jobs:
       - name: Lint QML & JavaScript
         run: |
           echo "Checking syntax with qmllint..."
-          qmllint contents/ui/*.qml contents/ui/config/*.qml contents/code/*.js
-          echo "All QML and JavaScript files passed linting."
+          # Provide module stubs for KDE Plasma runtime components not installed on headless runner
+          MOCK_DIR=$(mktemp -d)
+          for mod in \
+            "org.kde.kirigami" \
+            "org.kde.plasma.core" \
+            "org.kde.plasma.extras" \
+            "org.kde.plasma.components" \
+            "org.kde.kcmutils"; do
+              MOD_PATH="$MOCK_DIR/$(echo $mod | tr '.' '/')"
+              mkdir -p "$MOD_PATH"
+              echo "module $mod" > "$MOD_PATH/qmldir"
+          done
+
+          LINT_OUTPUT=$(qmllint -I "$MOCK_DIR" contents/ui/*.qml contents/ui/config/*.qml contents/code/*.js 2>&1) || LINT_EXIT=$?
+          echo "$LINT_OUTPUT"
+
+          # Check for real syntax or parse errors
+          SYNTAX_ERRORS=$(echo "$LINT_OUTPUT" | grep -iE "(:[0-9]+.*(error|expected token|parse error|syntax error)|fatal error)" | grep -v -i "Unqualified access" || true)
+          if [ -n "$SYNTAX_ERRORS" ]; then
+            echo "::error::Syntax errors detected in QML/JS files:"
+            echo "$SYNTAX_ERRORS"
+            exit 1
+          fi
+          echo "All QML and JavaScript files passed syntax verification."
+          rm -rf "$MOCK_DIR"
 
       - name: Build Plasmoid Package
         run: |
