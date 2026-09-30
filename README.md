@@ -3,6 +3,7 @@
 [![KDE Plasma 6](https://img.shields.io/badge/KDE%20Plasma-6.0%2B-blue?logo=kde&logoColor=white)](https://kde.org/plasma-desktop/)
 [![Uptime Kuma](https://img.shields.io/badge/Uptime%20Kuma-1.x%20%7C%202.x-brightgreen?logo=uptime-kuma)](https://github.com/louislam/uptime-kuma)
 [![Qt](https://img.shields.io/badge/Qt-6.6%2B-green?logo=qt&logoColor=white)](https://www.qt.io/)
+[![KDE Store](https://img.shields.io/badge/KDE%20Store-2375420-blue?logo=kde&logoColor=white)](https://store.kde.org/p/2375420/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A beautiful, native **KDE Plasma 6** widget to monitor the status, response times, and health of your servers and services tracked by **[Uptime Kuma](https://github.com/louislam/uptime-kuma)** (compatible with **Uptime Kuma 1.x** and **2.x**).
@@ -55,7 +56,19 @@ Designed following the **KDE Human Interface Guidelines (HIG)** with smooth Bree
 
 ## 🚀 Installation
 
-### Automated Install (Recommended)
+### Via KDE Plasma (Recommended)
+
+You can install the widget directly inside KDE Plasma without using the terminal:
+
+1. Right-click your desktop or panel and select **"Add Widgets..."** (or press <kbd>Meta</kbd> + <kbd>W</kbd>).
+2. Click **"Get New Widgets..."** &rarr; **"Download New Plasma Widgets"**.
+3. Search for **"Uptime Kuma"** and click **Install**.
+
+You can also find it in the extension stores:
+- **KDE Store**: [https://store.kde.org/p/2375420/](https://store.kde.org/p/2375420/)
+- **OpenDesktop**: [https://www.opendesktop.org/p/2375420/](https://www.opendesktop.org/p/2375420/)
+
+### Automated Install (From Git)
 
 Clone this repository and run the installation script:
 
