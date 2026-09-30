@@ -11,10 +11,57 @@ on:
       - main
   workflow_dispatch:
 
+env:
+  ACTIONS_RUNNER_FORCE_ACTIONS_NODE_VERSION: "node24"
+
 jobs:
   validate-and-test:
-    name: Validate and Test
-    runs-on: ubuntu-latest
+    name: Validate and Test (Container)
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build CI Validation Container
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.ci
+          load: true
+          tags: plasmoid-validator:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run Validation, Linting & Build in Container
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/workspace plasmoid-validator:latest
+
+      - name: Upload Plasmoid Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dev.muench.uptime-kuma-plasmoid
+          path: dev.muench.uptime-kuma.plasmoid
+          retention-days: 14
+
+  test-real-uptime-kuma:
+    name: Real Kuma E2E (${{ matrix.name }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: "v1 (1.23.16)"
+            image: "louislam/uptime-kuma:1.23.16"
+            env: ""
+            port: 3001
+          - name: "v2 (latest)"
+            image: "louislam/uptime-kuma:2"
+            env: "-e UPTIME_KUMA_DB_TYPE=sqlite"
+            port: 3001
 
     steps:
       - name: Checkout Code
@@ -23,124 +70,50 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
-      - name: Install System Dependencies
+      - name: Start Uptime Kuma Container
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            jq \
-            libxml2-utils \
-            zip \
-            unzip \
-            qt6-declarative-dev-tools \
-            qml6-module-qtquick \
-            qml6-module-qtquick-layouts \
-            qml6-module-qtquick-controls \
-            qml6-module-qtquick-templates \
-            qml6-module-qtquick-window \
-            qml6-module-qtqml
-          echo "/usr/lib/qt6/bin" >> $GITHUB_PATH
+          echo "Starting ${{ matrix.name }} container..."
+          docker run -d --name kuma \
+            ${{ matrix.env }} \
+            -p ${{ matrix.port }}:3001 \
+            ${{ matrix.image }}
 
-      - name: Validate metadata.json
-        run: |
-          echo "Checking JSON validity..."
-          jq . metadata.json > /dev/null
-
-          echo "Verifying required Plasma 6 metadata fields..."
-          APPLET_ID=$(jq -r '.KPlugin.Id' metadata.json)
-          API_VERSION=$(jq -r '."X-Plasma-API-Minimum-Version"' metadata.json)
-          MAIN_SCRIPT=$(jq -r '."X-Plasma-MainScript"' metadata.json)
-          PLUGIN_VERSION=$(jq -r '.KPlugin.Version' metadata.json)
-
-          if [ "$APPLET_ID" != "dev.muench.uptime-kuma" ]; then
-            echo "Error: Unexpected plugin ID '$APPLET_ID'"
-            exit 1
-          fi
-
-          if [ "$API_VERSION" != "6.0" ]; then
-            echo "Error: Invalid X-Plasma-API-Minimum-Version '$API_VERSION', expected '6.0'"
-            exit 1
-          fi
-
-          if [ "$MAIN_SCRIPT" != "ui/main.qml" ]; then
-            echo "Error: Invalid X-Plasma-MainScript '$MAIN_SCRIPT', expected 'ui/main.qml'"
-            exit 1
-          fi
-
-          echo "Metadata verified: $APPLET_ID v$PLUGIN_VERSION (Plasma API $API_VERSION)"
-
-      - name: Validate Config XML
-        run: |
-          echo "Validating contents/config/main.xml syntax..."
-          xmllint --noout contents/config/main.xml
-          echo "Config XML is valid."
-
-      - name: Run Unit Tests
-        run: |
-          echo "Running Node.js service unit test suite..."
-          node --test tests/*.test.js
-
-      - name: Lint QML & JavaScript
-        run: |
-          echo "Checking syntax with qmllint..."
-          # Provide module stubs for KDE Plasma runtime components not installed on headless runner
-          MOCK_DIR=$(mktemp -d)
-          for mod in \
-            "org.kde.kirigami" \
-            "org.kde.plasma.core" \
-            "org.kde.plasma.extras" \
-            "org.kde.plasma.components" \
-            "org.kde.kcmutils"; do
-              MOD_PATH="$MOCK_DIR/$(echo $mod | tr '.' '/')"
-              mkdir -p "$MOD_PATH"
-              echo "module $mod" > "$MOD_PATH/qmldir"
+          echo "Waiting for server to initialize..."
+          for i in $(seq 1 45); do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${{ matrix.port }}/" || true)
+            if [ "$CODE" = "200" ] || [ "$CODE" = "302" ]; then
+              echo "Server is responding (HTTP $CODE) after ${i}s."
+              break
+            fi
+            sleep 1
           done
 
-          LINT_OUTPUT=$(qmllint -I "$MOCK_DIR" contents/ui/*.qml contents/ui/config/*.qml contents/code/*.js 2>&1) || LINT_EXIT=$?
-          echo "$LINT_OUTPUT"
-
-          # Check for real syntax or parse errors
-          SYNTAX_ERRORS=$(echo "$LINT_OUTPUT" | grep -iE "(:[0-9]+.*(error|expected token|parse error|syntax error)|fatal error)" | grep -v -i "Unqualified access" || true)
-          if [ -n "$SYNTAX_ERRORS" ]; then
-            echo "::error::Syntax errors detected in QML/JS files:"
-            echo "$SYNTAX_ERRORS"
-            exit 1
-          fi
-          echo "All QML and JavaScript files passed syntax verification."
-          rm -rf "$MOCK_DIR"
-
-      - name: Build Plasmoid Package
+      - name: Seed Database
         run: |
-          VERSION=$(jq -r '.KPlugin.Version // "1.0.0"' metadata.json)
-          PKG_NAME="dev.muench.uptime-kuma.plasmoid"
-          PKG_VERSIONED="dev.muench.uptime-kuma-v${VERSION}.plasmoid"
+          echo "Seeding test database..."
+          docker exec -i kuma sqlite3 /app/data/kuma.db < tests/fixtures/seed.sql
+          docker restart kuma
 
-          echo "Packaging plasmoid as $PKG_NAME..."
-          zip -r "$PKG_NAME" metadata.json contents/ LICENSE README.md -x "*.DS_Store" "*~" "*.swp"
-          cp "$PKG_NAME" "$PKG_VERSIONED"
+          echo "Waiting for status page after restart..."
+          for i in $(seq 1 30); do
+            if curl -s "http://127.0.0.1:${{ matrix.port }}/api/status-page/default" | grep -q "Production Services"; then
+              echo "Status page ready after ${i}s."
+              break
+            fi
+            sleep 1
+          done
 
-          echo "Package created successfully."
-          ls -lh *.plasmoid
-
-      - name: Verify Package Structure
+      - name: Run Integration Tests
+        env:
+          KUMA_URL: "http://127.0.0.1:${{ matrix.port }}"
+          KUMA_API_KEY: "uk1_mysecretkey"
         run: |
-          PKG_NAME="dev.muench.uptime-kuma.plasmoid"
-          echo "Verifying contents of $PKG_NAME..."
-          unzip -l "$PKG_NAME"
+          node --test tests/integration.test.js
 
-          # Ensure critical files are present in the archive
-          unzip -l "$PKG_NAME" | grep -q " metadata.json$" || { echo "Missing metadata.json"; exit 1; }
-          unzip -l "$PKG_NAME" | grep -q " contents/ui/main.qml$" || { echo "Missing main.qml"; exit 1; }
-          unzip -l "$PKG_NAME" | grep -q " contents/code/uptimeKumaService.js$" || { echo "Missing service script"; exit 1; }
-          unzip -l "$PKG_NAME" | grep -q " contents/config/main.xml$" || { echo "Missing main.xml"; exit 1; }
-          unzip -l "$PKG_NAME" | grep -q " LICENSE$" || { echo "Missing LICENSE"; exit 1; }
-
-          echo "Package structure verified successfully."
-
-      - name: Upload Plasmoid Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: dev.muench.uptime-kuma-plasmoid
-          path: dev.muench.uptime-kuma.plasmoid
-          retention-days: 14
+      - name: Dump Container Logs on Failure
+        if: failure()
+        run: |
+          echo "=== Container Logs ==="
+          docker logs kuma

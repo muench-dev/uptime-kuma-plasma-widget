@@ -36,9 +36,23 @@ validate:
     jq . metadata.json > /dev/null
     xmllint --noout contents/config/main.xml
 
+# Run complete validation and linting inside Docker container (identical to CI)
+validate-docker:
+    docker build -t plasmoid-validator -f Dockerfile.ci .
+    docker run --rm -v "{{justfile_directory()}}:/workspace" plasmoid-validator
+
 # Run unit tests
 test-unit:
-    node --test tests/*.test.js
+    node --test tests/service.test.js
+
+# Run integration tests against real Docker instance (v1 or v2)
+test-docker version="v2":
+    ./tests/run-docker-test.sh {{version}}
+
+# Run all test suites (unit tests + real Docker v1 & v2 tests)
+test-all: test-unit
+    ./tests/run-docker-test.sh v1
+    ./tests/run-docker-test.sh v2
 
 # Install development symlink to ~/.local/share/plasma/plasmoids/
 install:

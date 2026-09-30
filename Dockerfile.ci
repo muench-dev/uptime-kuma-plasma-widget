@@ -1,0 +1,31 @@
+# CI Validation & Test Container for Uptime Kuma KDE Plasma 6 Widget
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PATH="/usr/lib/qt6/bin:${PATH}"
+
+# Install validation and packaging tools (jq, xmllint, zip/unzip, Qt 6 QML tools)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    jq \
+    libxml2-utils \
+    zip \
+    unzip \
+    qt6-declarative-dev-tools \
+    qml6-module-qtquick \
+    qml6-module-qtquick-layouts \
+    qml6-module-qtquick-controls \
+    qml6-module-qtquick-templates \
+    qml6-module-qtquick-window \
+    qml6-module-qtqml \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install modern Node.js (Active LTS v22)
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+
+CMD ["bash", "tests/run-ci-validation.sh"]

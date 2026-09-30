@@ -139,14 +139,18 @@ Right-click the widget and select **"Configure Uptime Kuma..."** to customize yo
 This project includes a [`justfile`](justfile) with handy automation recipes:
 
 ```bash
-just package    # Build .plasmoid package archive
-just lint       # Check all QML files with qmllint
-just validate   # Validate metadata.json and config XML schemas
-just test-unit  # Run Node.js service test suite
-just test       # Launch widget in a standalone window (plasmawindowed)
-just install    # Link widget into ~/.local/share/plasma/plasmoids/
-just uninstall  # Remove widget from ~/.local/share/plasma/plasmoids/
-just clean      # Remove built .plasmoid packages
+just package             # Build .plasmoid package archive
+just lint                # Check all QML files with qmllint
+just validate            # Validate metadata.json and config XML schemas
+just validate-docker     # Run complete CI validation and linting inside Docker container
+just test-unit           # Run Node.js service unit test suite
+just test-docker v1      # Run E2E integration tests against real Uptime Kuma v1 container
+just test-docker v2      # Run E2E integration tests against real Uptime Kuma v2 container
+just test-all            # Run all test suites (unit + real v1 & v2 integration)
+just test                # Launch widget in a standalone window (plasmawindowed)
+just install             # Link widget into ~/.local/share/plasma/plasmoids/
+just uninstall           # Remove widget from ~/.local/share/plasma/plasmoids/
+just clean               # Remove built .plasmoid packages
 ```
 
 ---
